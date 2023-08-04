@@ -260,8 +260,9 @@ void Mapping::expandOccpancy(vector<int> occ_pos){
 }
 
 unsigned char Mapping::getPositionState(const Eigen::Vector3d& world_pos){
+    // TODO 需要保证world_pos在地图范围内
     Eigen::Vector3i map_pos = worldIndex2MapIndex(world_pos);
-
+    
     return my_map[map_pos[0]][map_pos[1]][map_pos[2]].map_state;
 }
 
