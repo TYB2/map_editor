@@ -5,6 +5,9 @@
 #include <geometry_msgs/Point32.h>
 #include <sensor_msgs/PointCloud.h>
 #include <eigen3/Eigen/Core>
+// #include <pcl-1.8/pcl/io/ply_io.h>
+#include <pcl/io/ply_io.h>
+#include <pcl/point_types.h>
 #include <map>
 
 using namespace std;
@@ -21,10 +24,13 @@ private:
     int size_x;
     int size_y;
     int size_z;
-    int offset_x, offset_y;
+    int offset_x, offset_y, offset_z;
     double map_resolusion;
     int expand_size;                            // 膨胀的尺寸，单位像素
     int occ_heght;                              // 障碍物的高度
+    geometry_msgs::PoseStamped camera_pose;     // test
+    Eigen::MatrixX3d camera_R;                  // test
+    Eigen::Vector3d  camera_position;                // test
 
     MapStruct*** my_map;                        // 地图
     // map<vector<int>, int> occupancy_list;    // 障碍物序列，映射关系： <坐标> —— <编号>
@@ -114,6 +120,13 @@ public:
     void initMap(const double& map_size_x, const double& map_size_y, const double& map_size_z);
 
     /**
+     * 从.ply文件中读取点云并转换为当前地图格式
+     * 
+     * @param cloud_point_dir   - 点云文件的路径
+    */
+    void initMapFromCloudPoint(string cloud_point_dir);
+
+    /**
      * 接收坐标
      * 
      * @param pos           - 接受的坐标
@@ -136,6 +149,8 @@ public:
      * @param occ_exp_pts   - 存放障碍物膨胀区域点的数组
     */
     void getOccPts(sensor_msgs::PointCloud& occ_pts, sensor_msgs::PointCloud& occ_exp_pts);  
+
+    void testRegisterOccpancy(const sensor_msgs::PointCloud& occ_pts);
 };
 
 inline double Mapping::calDistance(vector<int> p1, vector<int> p2){

@@ -29,6 +29,27 @@ Mapping::Mapping(   int size_x_,
     occ_heght = min(int(1.5 / map_resolusion), size_z);
     offset_x = size_x / 2;
     offset_y = size_y / 2;
+    offset_z = size_z / 2;
+
+    // test
+    camera_pose.pose.position.x = 2.0;
+    camera_pose.pose.position.y = 3.0;
+    camera_pose.pose.position.z = 1.0;
+    camera_pose.pose.orientation.w = 1.0;
+    camera_pose.pose.orientation.x = 0.0;
+    camera_pose.pose.orientation.y = 0.0;
+    camera_pose.pose.orientation.z = 0.0;
+
+    Eigen::Quaterniond camera_ori;
+    camera_ori.x() = camera_pose.pose.orientation.x;
+    camera_ori.y() = camera_pose.pose.orientation.y;
+    camera_ori.z() = camera_pose.pose.orientation.z;
+    camera_ori.w() = camera_pose.pose.orientation.w;
+    
+    camera_R = camera_ori.normalized().toRotationMatrix();
+    camera_position.x() = camera_pose.pose.position.x;
+    camera_position.y() = camera_pose.pose.position.y;
+    camera_position.z() = camera_pose.pose.position.z;
 }
 
 Mapping::~Mapping(){
@@ -127,6 +148,35 @@ void Mapping::initMap(const double& map_size_x, const double& map_size_y, const 
 
 
     // 封顶（暂时不需要封顶）
+}
+
+void Mapping::initMapFromCloudPoint(string cloud_point_dir){
+    // 创建点云对象
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+    // 加载.ply
+    if(pcl::io::loadPLYFile<pcl::PointXYZ>(cloud_point_dir, *cloud) == -1){
+        PCL_ERROR("无法加载ply文件\n");
+        exit(-1);
+    }
+
+    // 输出点云的大小
+    cout << "点云大小： " << cloud->width * cloud->height << " data points." << endl;
+
+    // 遍历点云坐标，并转换为当前地图格式(TODO 需要膨胀，这里膨胀暂时没有实现)
+    // 需要对图做旋转处理
+    for(auto& point : *cloud){
+        Eigen::Vector3d cur_pt(point.x, point.y, point.z);
+
+        int x = (int)(cur_pt.x() / map_resolusion + offset_x);
+        int y = (int)(cur_pt.y() / map_resolusion + offset_y);
+        int z = (int)(cur_pt.z() / map_resolusion + offset_z);
+
+        my_map[x][y][z].map_state = 1;
+        my_map[x][y][z].count = 100;
+        // cout << "x: " << x << " y: " << y << " z: " << z << endl;
+        cout << "x: " << point.x << " y: " << point.y << " z: " << point.z << endl;
+    }
 }
 
 Eigen::Vector3i Mapping::worldIndex2MapIndex(const Eigen::Vector3d& world_pos){
@@ -271,8 +321,8 @@ void Mapping::getOccPts(sensor_msgs::PointCloud& occ_pts, sensor_msgs::PointClou
     const static int max_x =  size_x / 2 + offset_x;
     const static int min_y = -size_y / 2 + offset_y;
     const static int max_y =  size_y / 2 + offset_y;
-    const static int min_z =  0;
-    const static int max_z =  size_z;
+    const static int min_z =  0      + offset_z;
+    const static int max_z =  size_z + offset_z;
 
     occ_pts.points.clear();
     occ_exp_pts.points.clear();
@@ -286,7 +336,7 @@ void Mapping::getOccPts(sensor_msgs::PointCloud& occ_pts, sensor_msgs::PointClou
                 geometry_msgs::Point32 cur_pt;
                 cur_pt.x = (x - offset_x) * map_resolusion;
                 cur_pt.y = (y - offset_y) * map_resolusion;
-                cur_pt.z = z * map_resolusion;
+                cur_pt.z = (z - offset_z)* map_resolusion;
 
                 if(my_map[x][y][z].map_state == 1){
                     occ_pts.points.emplace_back(cur_pt);
@@ -296,5 +346,40 @@ void Mapping::getOccPts(sensor_msgs::PointCloud& occ_pts, sensor_msgs::PointClou
                 }
             }
         }
+    }
+}
+
+void Mapping::testRegisterOccpancy(const sensor_msgs::PointCloud& occ_pts){
+    // 障碍物长度
+    static int occupancy_length = (int)(2.0 / map_resolusion);
+
+    // 相机坐标系 转 世界坐标系
+    Eigen::Vector3d start_pt(occ_pts.points[0].x, occ_pts.points[0].y, occ_pts.points[0].z);
+    Eigen::Vector3d end_pt(occ_pts.points.back().x, occ_pts.points.back().y, occ_pts.points.back().z);
+    start_pt = camera_R * start_pt + camera_position;
+    end_pt = camera_R * end_pt + camera_position;
+
+    // 方向，可能不太合理这里，后续再优化
+    Eigen::Vector3d occ_direction;
+    
+    occ_direction = end_pt - start_pt;
+    occ_direction.normalize();
+
+    // 起点
+    Eigen::Vector3d start_pt_in_map((start_pt.x() / map_resolusion + offset_x), 
+                                    (start_pt.y() / map_resolusion + offset_y), 
+                                    (start_pt.z() / map_resolusion + offset_z));
+
+    // 注册障碍物
+    Eigen::Vector3d cur_pt = start_pt_in_map;
+    for(int i = 0; i < occupancy_length; i++){
+        // 判断 cur_pt 是否越界
+        if(judgeOutOfMap(vector<int>{(int)cur_pt.x(), (int)cur_pt.y(), (int)cur_pt.z()})){
+            break;
+        }
+
+        // 
+        my_map[(int)cur_pt.x()][(int)cur_pt.y()][(int)cur_pt.z()].map_state = 1;
+        cur_pt = cur_pt + occ_direction;
     }
 }

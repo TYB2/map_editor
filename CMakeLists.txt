@@ -15,10 +15,13 @@ find_package(catkin REQUIRED COMPONENTS
              nav_msgs
              visualization_msgs
              tf
+             pcl_ros
+             pcl_conversions
              message_filters
              )   
 
 find_package(Eigen3 REQUIRED)
+find_package(PCL 1.8 REQUIRED)
 set(Eigen3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
 
 catkin_package(
@@ -35,6 +38,9 @@ include_directories(
   ${EIGEN3_INCLUDE_DIR}
 )
 
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
 
 add_executable(map_editor
               include/mapping.h
@@ -46,4 +52,5 @@ add_executable(map_editor
 target_link_libraries(map_editor 
                       ${catkin_LIBRARIES}
                       Eigen3::Eigen
+                      ${PCL_LIBRARIES}
                       )

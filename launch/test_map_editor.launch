@@ -1,15 +1,16 @@
 <launch>
     <node pkg="map_editor" type="map_editor" name="map_editor" output="screen">
 
-        <param name="size_x" value="5.0"/> 
-        <param name="size_y" value="5.0"/> 
-        <param name="size_z" value="2.0"/> 
+        <param name="size_x" value="20.0"/> 
+        <param name="size_y" value="20.0"/> 
+        <param name="size_z" value="20.0"/> 
         <param name="wall_size_x" value="4.0"/> 
         <param name="wall_size_y" value="4.0"/> 
         <param name="wall_size_z" value="1.9"/> 
         <param name="map_resolusion" value="0.1"/> 
         <param name="expand_size" value="0.4"/> 
         <param name="accept_pt_topic" value="/clicked_point"/> 
+        <param name="cloud_point_filename" value="$(find map_editor)/mesh/mesh.ply"/> 
         
     </node>
 

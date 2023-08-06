@@ -4,6 +4,7 @@ Mapping* my_map_editor;
 double size_x, size_y, size_z;
 double wall_size_x, wall_size_y, wall_size_z;
 double map_resolusion, expand_size;
+string cloud_point_filename;
 
 ros::Publisher occupancy_pub;
 ros::Publisher occupancy_expand_pub;
@@ -21,7 +22,21 @@ void get_pt_cb(const geometry_msgs::PointStamped::ConstPtr& pt){
 
     accept_pose.pose.position.x = pt->point.x;
     accept_pose.pose.position.y = pt->point.y;
-    my_map_editor->acceptPosition(accept_pose);
+    // my_map_editor->acceptPosition(accept_pose);
+
+    sensor_msgs::PointCloud occ_line;
+
+    geometry_msgs::Point32 start_pt;
+    start_pt.x = 1.0;
+    start_pt.y = 1.0;
+    start_pt.z = 1.0;
+    geometry_msgs::Point32 end_pt;
+    end_pt.x = 1.0;
+    end_pt.y = 1.0;
+    end_pt.z = 0.5;
+    occ_line.points.push_back(start_pt);
+    occ_line.points.push_back(end_pt);
+    my_map_editor->testRegisterOccpancy(occ_line);
 }
 
 void publish_callback(const ros::TimerEvent& e){
@@ -43,7 +58,8 @@ void init(){
                                 expand_size);
 
     cout << "init map" << endl;
-    my_map_editor->initMap(4.0, 4.0, 1.9);
+    // my_map_editor->initMap(wall_size_x, wall_size_y, wall_size_z);
+    // my_map_editor->initMapFromCloudPoint(cloud_point_filename);
 
     occ_pts.header.frame_id = "map";
     occ_exp_pts.header.frame_id = "map";
@@ -67,9 +83,15 @@ int main(int argc, char **argv)
     node.param("map_resolusion", map_resolusion, 0.1);
     node.param("expand_size", expand_size, 0.4);
     node.param("accept_pt_topic", accept_pt_topic, string("/clicked_point"));
+    node.param("cloud_point_filename", cloud_point_filename, string("null"));
 
     if(wall_size_x > size_x || wall_size_x > size_y || wall_size_z > size_z){
         cout << "size of wall can not larger than size of map" << endl;
+        exit(-1);
+    }
+
+    if(cloud_point_filename.compare("null") == 0){
+        cout << "cloud_point_filename can not be empty" << endl;
         exit(-1);
     }
 
