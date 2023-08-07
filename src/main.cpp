@@ -18,6 +18,28 @@ geometry_msgs::PoseStamped accept_pose;
 //     my_map_editor->acceptPosition(*pt);
 // }
 
+void get_camera_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& camera_pose){
+    my_map_editor->setCameraPose(*camera_pose);
+}
+
+void get_line_cb(const sensor_msgs::PointCloud::ConstPtr& lines_points){
+    // 可能有bug，camera_pose还没有设置，就执行这个语句
+    // 可能需要和get_camera_pose_cb对齐时间戳
+
+    sensor_msgs::PointCloud line;
+    string linename = lines_points->channels[0].name;
+    for(int i = 0; i < lines_points->points.size(); i++){
+        if(lines_points->channels[i].name.compare(linename) != 0){
+            my_map_editor->testRegisterOccpancy(line);
+            line.points.clear();
+            linename = lines_points->channels[i].name;
+        }
+
+        line.points.push_back(lines_points->points[i]);
+    }
+    my_map_editor->testRegisterOccpancy(line);
+}
+
 void get_pt_cb(const geometry_msgs::PointStamped::ConstPtr& pt){
 
     accept_pose.pose.position.x = pt->point.x;
@@ -98,7 +120,9 @@ int main(int argc, char **argv)
     init();
 
     // 接受坐标
-    ros::Subscriber get_pt_sub = nh.subscribe(accept_pt_topic, 1, get_pt_cb);
+    // ros::Subscriber get_pt_sub = nh.subscribe(accept_pt_topic, 1, get_pt_cb);
+    ros::Subscriber get_camera_pose_sub = nh.subscribe("", 1, get_camera_pose_cb);
+    ros::Subscriber get_line_sub = nh.subscribe("", 1, get_line_cb);
 
     // 可视化
     occupancy_pub = nh.advertise<sensor_msgs::PointCloud>("visualize_pointcloud", 1, true);

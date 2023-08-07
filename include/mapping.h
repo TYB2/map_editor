@@ -151,6 +151,8 @@ public:
     void getOccPts(sensor_msgs::PointCloud& occ_pts, sensor_msgs::PointCloud& occ_exp_pts);  
 
     void testRegisterOccpancy(const sensor_msgs::PointCloud& occ_pts);
+
+    void setCameraPose(const geometry_msgs::PoseStamped& camera_pose);
 };
 
 inline double Mapping::calDistance(vector<int> p1, vector<int> p2){

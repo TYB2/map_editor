@@ -52,6 +52,19 @@ Mapping::Mapping(   int size_x_,
     camera_position.z() = camera_pose.pose.position.z;
 }
 
+void Mapping::setCameraPose(const geometry_msgs::PoseStamped& camera_pose){
+    Eigen::Quaterniond camera_ori;
+    camera_ori.x() = camera_pose.pose.orientation.x;
+    camera_ori.y() = camera_pose.pose.orientation.y;
+    camera_ori.z() = camera_pose.pose.orientation.z;
+    camera_ori.w() = camera_pose.pose.orientation.w;
+    
+    camera_R = camera_ori.normalized().toRotationMatrix();
+    camera_position.x() = camera_pose.pose.position.x;
+    camera_position.y() = camera_pose.pose.position.y;
+    camera_position.z() = camera_pose.pose.position.z;
+}
+
 Mapping::~Mapping(){
 
     // 删除地图空间
